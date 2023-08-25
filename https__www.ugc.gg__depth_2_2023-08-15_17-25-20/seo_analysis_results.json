@@ -1,0 +1,59 @@
+{
+  "keywords": [
+    [
+      "gaming",
+      7
+    ],
+    [
+      "events",
+      6
+    ],
+    [
+      "ugc",
+      6
+    ],
+    [
+      "team",
+      5
+    ],
+    [
+      "press",
+      5
+    ],
+    [
+      "ultimate",
+      5
+    ],
+    [
+      "championship",
+      5
+    ],
+    [
+      "menu",
+      4
+    ],
+    [
+      "live",
+      4
+    ],
+    [
+      "esports",
+      4
+    ]
+  ],
+  "good": [
+    "Title Exists! Great!",
+    "Description Exists! Great!",
+    "Schema markup detected!"
+  ],
+  "bad": [
+    "No Alt attribute for image: https://www.ugc.gg/wp-content/uploads/2020/09/logo-300x102.png",
+    "No Alt attribute for image: https://www.ugc.gg/wp-content/uploads/2022/12/UGC_social_01-300x180.jpg",
+    "No Alt attribute for image: https://www.ugc.gg/wp-content/uploads/2022/10/ad-300x198.jpg",
+    "No Alt attribute for image: https://www.ugc.gg/wp-content/uploads/2021/09/BAASfeatureimg-300x126.png",
+    "No Alt attribute for image: https://www.ugc.gg/wp-content/uploads/2020/09/logo.png",
+    "No Alt attribute for image: https://www.ugc.gg/wp-content/uploads/2021/05/hc-one.png",
+    "The site does not appear in the top 10 Google results for its top keyword: gaming."
+  ],
+  "schema_suggestion": null
+}
