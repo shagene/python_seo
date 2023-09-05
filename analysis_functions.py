@@ -1,27 +1,12 @@
-# sitemap_crawler.py
+# analysis_functions.py
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 from bs4 import BeautifulSoup
-import datetime
-import threading
 import os
 import json
-from urllib.parse import urlparse
-from sitemap_visualizations import analyze_sitemap
 from sklearn.feature_extraction.text import TfidfVectorizer
 from textatistic import Textatistic
-
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-}
-
-
-def sanitize_url_for_directory(url):
-    """
-    Sanitize the URL to make it suitable for directory names.
-    """
-    return url.replace('//', '_').replace('/', '_').replace(':', '_').replace('?', '_').replace('&', '_').replace('=', '_')
+from urls_utils import headers, sanitize_url_for_directory
 
 def generate_article_json_ld(title, author, date_published, image_url, description):
     """
@@ -66,7 +51,6 @@ def extract_keywords(sitemap_data):
         keywords = vectorizer.get_feature_names_out()
         return keywords
     return []
-
 
 def content_organization_strategy(sitemap_data, main_save_directory):
     analysis_results = []
@@ -118,7 +102,6 @@ def content_organization_strategy(sitemap_data, main_save_directory):
 
     print("Content Organization Strategy Analysis completed and saved.")
 
-
 def url_optimization_analysis(sitemap_data, keywords, main_save_directory):
     url_analysis_results = []
     for url in sitemap_data.keys():
@@ -151,7 +134,6 @@ def url_optimization_analysis(sitemap_data, keywords, main_save_directory):
         json.dump(url_analysis_results, file, indent=2)
 
     print("URL Optimization Analysis completed and saved.")
-
 
 def content_analysis_input(sitemap_data, main_save_directory):
     content_results = []
@@ -211,117 +193,3 @@ def content_analysis_input(sitemap_data, main_save_directory):
         json.dump(content_results, file, indent=2)
 
     print("Content Analysis Input completed and saved.")
-
-
-
-class Crawler:
-    def __init__(self, base_url, max_depth=2, max_threads=10, timeout=30):
-        self.base_url = self.format_url(base_url)
-        self.max_depth = max_depth
-        self.max_threads = max_threads
-        self.timeout = timeout
-        self.visited_urls = []
-        self.sitemap = {}
-        self.lock = threading.Lock()
-        self.main_save_directory = ""
-
-    @staticmethod
-    def format_url(url):
-        if not url.startswith('http'):
-            try:
-                requests.head('https://' + url, timeout=5, headers=headers)
-                return 'https://' + url
-            except requests.RequestException:
-                return 'http://' + url
-        return url
-
-    def visit_url(self, url, depth):
-        with self.lock:
-            if depth >= self.max_depth or url in self.visited_urls:
-                return
-            self.visited_urls.append(url)
-            self.sitemap[url] = []
-
-        try:
-            response = requests.get(url, timeout=self.timeout, headers=headers)
-            response.raise_for_status()
-        except (requests.RequestException, ValueError):
-            return
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-        self.sitemap[url] = [link.get('href') for link in soup.find_all('a') if
-                             link.get('href') and link.get('href').startswith('http')]
-
-        for link in self.sitemap[url]:
-            self.visit_url(link, depth + 1)
-
-    def crawl(self):
-        with ThreadPoolExecutor(max_workers=self.max_threads) as executor:
-            future_to_url = {executor.submit(self.visit_url, url, 0): url for url in [self.base_url]}
-            for future in as_completed(future_to_url):
-                url = future_to_url[future]
-                try:
-                    future.result()
-                except Exception as exc:
-                    print(f"{url} generated an exception: {str(exc)}")
-                else:
-                    print(f"{url} page is {len(self.sitemap[url])} links long")
-            return self.sitemap
-
-    def save_sitemap(self):
-        folder_name = sanitize_url_for_directory(self.base_url)
-        self.main_save_directory = os.path.join(os.getcwd(), folder_name)
-        os.makedirs(self.main_save_directory, exist_ok=True)
-        valid_filepath = os.path.join(self.main_save_directory, 'sitemap.json')
-        with open(valid_filepath, 'w') as file:
-            file.write(json.dumps(self.sitemap, indent=2))
-        print(f"Sitemap saved to: {valid_filepath}")
-        return valid_filepath
-
-
-def crawl_website(url_to_crawl, max_depth):
-    current_time = datetime.datetime.now()
-    current_time_string = current_time.strftime("%Y-%m-%d_%H-%M-%S")
-    crawler = Crawler(url_to_crawl, max_depth=max_depth, max_threads=10, timeout=20)
-    crawler.crawl()
-    json_file_path = crawler.save_sitemap(url_to_crawl + "_" + "depth_" + str(max_depth) + "_" + current_time_string)
-    main_save_directory = crawler.main_save_directory
-
-    # Extracting keywords
-    keywords = extract_keywords(crawler.sitemap)
-
-    # Calling the analyze_sitemap function to generate visualizations
-    analyze_sitemap(json_file_path)
-
-    # Running URL Optimization Analysis
-    url_optimization_analysis(crawler.sitemap, keywords, main_save_directory)
-
-    # Running Content Organization Strategy Analysis
-    content_organization_strategy(crawler.sitemap, main_save_directory)
-
-    # Running Content Analysis Input
-    content_analysis_input(crawler.sitemap, main_save_directory)
-
-    # Load the saved sitemap
-    with open(json_file_path, 'r') as file:
-        sitemap_data = json.load(file)
-
-    # For each URL in the sitemap (excluding the main URL to avoid re-analysis)
-    for url in sitemap_data[url_to_crawl]:
-        if url == url_to_crawl:
-            continue
-        print(f"Analyzing {url}...")
-        # Create a sub-directory for this URL
-        url_subdir = os.path.join(main_save_directory, sanitize_url_for_directory(url))
-        os.makedirs(url_subdir, exist_ok=True)
-
-        # Running URL Optimization Analysis
-        url_optimization_analysis({url: []}, [], url_subdir)  # Empty list since we're not crawling deeper
-
-        # Running Content Organization Strategy Analysis
-        content_organization_strategy({url: []}, url_subdir)
-
-        # Running Content Analysis Input
-        content_analysis_input({url: []}, url_subdir)
-
-    return crawler.sitemap, main_save_directory
